@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LeadDrive – HSR Motors CRM</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #181c27;
+    --surface2: #1f2436;
+    --border: #2a2f45;
+    --accent: #f5a623;
+    --accent2: #3d8ef8;
+    --green: #22c55e;
+    --red: #ef4444;
+    --yellow: #f59e0b;
+    --purple: #a855f7;
+    --text: #e8eaf0;
+    --muted: #6b7280;
+    --sidebar: 220px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'DM Sans', sans-serif; background: #080a10; color: var(--text); }
+
+  /* SCREEN WRAPPER */
+  .screen { display: none; width: 1280px; min-height: 800px; background: var(--bg); margin: 0 auto; position: relative; }
+  .screen.active { display: flex; }
+
+  /* NAV TABS (for preview switching) */
+  .preview-nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 999;
+    background: #05070d;
+    display: flex; align-items: center; gap: 4px; padding: 10px 20px;
+    border-bottom: 1px solid #1a1f30;
+  }
+  .preview-nav span { font-family: 'Syne', sans-serif; font-size: 13px; color: var(--accent); margin-right: 16px; font-weight: 800; letter-spacing: 1px; }
+  .preview-nav button {
+    padding: 6px 16px; border-radius: 6px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--muted); cursor: pointer;
+    font-family: 'DM Sans', sans-serif; font-size: 13px; transition: all .2s;
+  }
+  .preview-nav button.active, .preview-nav button:hover { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 600; }
+  .screens-wrap { margin-top: 50px; display: flex; justify-content: center; }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: var(--sidebar); background: var(--surface); border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; padding: 0; flex-shrink: 0;
+  }
+  .logo-area { padding: 24px 20px 20px; border-bottom: 1px solid var(--border); }
+  .logo { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; color: var(--accent); letter-spacing: -0.5px; }
+  .logo span { color: var(--text); }
+  .logo-sub { font-size: 10px; color: var(--muted); margin-top: 2px; letter-spacing: 1.5px; text-transform: uppercase; }
+  .nav-section { padding: 20px 12px 8px; }
+  .nav-label { font-size: 10px; color: var(--muted); letter-spacing: 1.5px; text-transform: uppercase; padding: 0 8px 8px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px; padding: 9px 10px;
+    border-radius: 8px; cursor: pointer; font-size: 13.5px; color: var(--muted);
+    margin-bottom: 2px; transition: all .2s;
+  }
+  .nav-item.active { background: rgba(245,166,35,0.12); color: var(--accent); font-weight: 600; }
+  .nav-item:not(.active):hover { background: var(--surface2); color: var(--text); }
+  .nav-icon { width: 18px; text-align: center; font-size: 15px; }
+  .nav-badge { margin-left: auto; background: var(--accent); color: #000; font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 20px; }
+  .sidebar-footer { margin-top: auto; padding: 16px; border-top: 1px solid var(--border); }
+  .user-pill { display: flex; align-items: center; gap: 10px; }
+  .avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, var(--accent2), var(--purple)); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #fff; flex-shrink: 0; }
+  .user-info { flex: 1; min-width: 0; }
+  .user-name { font-size: 13px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .user-role { font-size: 11px; color: var(--muted); }
+
+  /* MAIN CONTENT */
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .topbar {
+    height: 60px; border-bottom: 1px solid var(--border); display: flex; align-items: center;
+    padding: 0 24px; gap: 16px; flex-shrink: 0; background: var(--bg);
+  }
+  .topbar-title { font-family: 'Syne', sans-serif; font-size: 17px; font-weight: 700; color: var(--text); }
+  .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+  .search-box {
+    display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 7px 12px; width: 220px;
+  }
+  .search-box input { background: none; border: none; outline: none; color: var(--text); font-size: 13px; width: 100%; font-family: 'DM Sans', sans-serif; }
+  .search-box input::placeholder { color: var(--muted); }
+  .icon-btn { width: 36px; height: 36px; border-radius: 8px; background: var(--surface); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 16px; }
+  .btn { padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; font-family: 'DM Sans', sans-serif; display: inline-flex; align-items: center; gap: 6px; }
+  .btn-primary { background: var(--accent); color: #000; }
+  .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+  .btn-sm { padding: 5px 12px; font-size: 12px; }
+
+  /* PAGE CONTENT */
+  .page { flex: 1; overflow-y: auto; padding: 24px; }
+
+  /* STATUS BADGES */
+  .badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 20px; font-size: 11.5px; font-weight: 600; }
+  .badge-new { background: rgba(61,142,248,0.15); color: var(--accent2); }
+  .badge-contacted { background: rgba(168,85,247,0.15); color: var(--purple); }
+  .badge-qualified { background: rgba(34,197,94,0.15); color: var(--green); }
+  .badge-not-interested { background: rgba(239,68,68,0.15); color: var(--red); }
+  .badge-follow-up { background: rgba(245,158,11,0.15); color: var(--yellow); }
+  .badge-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+  /* SOURCE PILLS */
+  .source { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--muted); }
+  .source-icon { font-size: 13px; }
+
+  /* TABLE */
+  .data-table { width: 100%; border-collapse: collapse; }
+  .data-table th { text-align: left; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; padding: 10px 14px; border-bottom: 1px solid var(--border); background: var(--surface); }
+  .data-table th:first-child { border-radius: 8px 0 0 0; }
+  .data-table th:last-child { border-radius: 0 8px 0 0; }
+  .data-table td { padding: 13px 14px; border-bottom: 1px solid var(--border); font-size: 13.5px; vertical-align: middle; }
+  .data-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .data-table tr:last-child td { border-bottom: none; }
+  .lead-name { font-weight: 600; color: var(--text); }
+  .lead-phone { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .checkbox { width: 15px; height: 15px; border-radius: 4px; border: 1.5px solid var(--border); background: var(--surface2); }
+  .action-dots { color: var(--muted); cursor: pointer; font-size: 18px; letter-spacing: 1px; }
+
+  /* FILTER BAR */
+  .filter-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+  .filter-chip { padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border); background: var(--surface); font-size: 12.5px; color: var(--muted); cursor: pointer; display: flex; align-items: center; gap: 6px; }
+  .filter-chip.active { border-color: var(--accent); color: var(--accent); background: rgba(245,166,35,0.08); }
+  .filter-chip select { background: none; border: none; outline: none; color: inherit; font-size: 12.5px; font-family: 'DM Sans', sans-serif; cursor: pointer; }
+
+  /* CARDS */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+  .card-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+  .card-value { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 700; color: var(--text); }
+  .card-change { font-size: 12px; margin-top: 4px; }
+  .up { color: var(--green); }
+  .down { color: var(--red); }
+
+  /* GRID LAYOUTS */
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+  /* SECTION HEADER */
+  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .section-title { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; color: var(--text); }
+
+  /* LEAD DETAIL SPECIFIC */
+  .detail-grid { display: grid; grid-template-columns: 1fr 340px; gap: 20px; }
+  .info-row { display: flex; align-items: flex-start; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .info-row:last-child { border-bottom: none; }
+  .info-label { font-size: 12px; color: var(--muted); width: 120px; flex-shrink: 0; padding-top: 2px; }
+  .info-value { font-size: 13.5px; color: var(--text); font-weight: 500; flex: 1; }
+  .timeline-item { display: flex; gap: 12px; margin-bottom: 14px; }
+  .tl-dot-wrap { display: flex; flex-direction: column; align-items: center; }
+  .tl-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); flex-shrink: 0; margin-top: 4px; }
+  .tl-line { width: 2px; background: var(--border); flex: 1; margin-top: 4px; }
+  .tl-content { flex: 1; }
+  .tl-title { font-size: 13px; font-weight: 600; color: var(--text); }
+  .tl-time { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .tl-body { font-size: 12.5px; color: var(--muted); margin-top: 4px; }
+  .notes-area { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-size: 13px; color: var(--text); line-height: 1.6; width: 100%; min-height: 80px; resize: none; font-family: 'DM Sans', sans-serif; outline: none; }
+
+  /* PIPELINE / KANBAN */
+  .kanban { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 8px; }
+  .kanban-col { min-width: 210px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .kanban-head { padding: 12px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .kanban-head-label { font-size: 12px; font-weight: 600; color: var(--text); }
+  .kanban-count { background: var(--surface2); border: 1px solid var(--border); border-radius: 20px; padding: 1px 9px; font-size: 11px; color: var(--muted); }
+  .kanban-body { padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+  .kanban-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 11px 12px; cursor: pointer; transition: all .15s; }
+  .kanban-card:hover { border-color: var(--accent); }
+  .kc-name { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .kc-meta { font-size: 11.5px; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+  .kc-assignee { display: flex; align-items: center; gap: 5px; margin-top: 8px; }
+  .kc-avatar { width: 20px; height: 20px; border-radius: 50%; background: linear-gradient(135deg, var(--accent2), var(--purple)); display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; color: #fff; }
+
+  /* CHARTS (SVG-based) */
+  .chart-area { background: var(--surface2); border-radius: 8px; padding: 16px; overflow: hidden; }
+  .bar-chart { display: flex; align-items: flex-end; gap: 10px; height: 120px; }
+  .bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .bar { width: 100%; border-radius: 4px 4px 0 0; background: var(--accent2); transition: height .3s; }
+  .bar.accent { background: var(--accent); }
+  .bar-label { font-size: 10px; color: var(--muted); text-align: center; }
+  .bar-val { font-size: 10px; color: var(--text); font-weight: 600; }
+
+  /* DONUT PLACEHOLDER */
+  .donut-wrap { display: flex; align-items: center; gap: 20px; }
+  .donut-svg { flex-shrink: 0; }
+  .legend { display: flex; flex-direction: column; gap: 8px; }
+  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+
+  /* MINI SPARKLINE */
+  .sparkline { stroke-width: 2; fill: none; stroke: var(--accent); }
+
+  /* ASSIGNMENT STRIP */
+  .assign-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .assign-row:last-child { border-bottom: none; }
+  .rep-avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #fff; flex-shrink: 0; }
+  .rep-info { flex: 1; }
+  .rep-name { font-size: 13px; font-weight: 600; color: var(--text); }
+  .rep-count { font-size: 12px; color: var(--muted); }
+  .progress-bar-wrap { width: 100px; }
+  .progress-bar { height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 3px; background: var(--accent); }
+
+  /* AUTO TAG */
+  .auto-tag { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 4px; background: rgba(34,197,94,0.12); color: var(--green); font-size: 10.5px; font-weight: 600; }
+
+  /* HEADER BREADCRUMB */
+  .breadcrumb { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+  .breadcrumb span { color: var(--text); }
+  .breadcrumb .sep { color: var(--border); }
+
+  /* SCORE RING */
+  .score-ring { position: relative; width: 56px; height: 56px; }
+  .score-text { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: var(--accent); font-family: 'Syne', sans-serif; }
+
+  /* FORM ELEMENTS */
+  .form-row { margin-bottom: 14px; }
+  .form-label { font-size: 12px; color: var(--muted); margin-bottom: 5px; display: block; }
+  .form-input { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 9px 12px; color: var(--text); font-size: 13px; outline: none; font-family: 'DM Sans', sans-serif; }
+  .form-select { appearance: none; cursor: pointer; }
+  .form-input:focus { border-color: var(--accent); }
+
+  /* NOTIFICATION DOT */
+  .notif { position: relative; }
+  .notif-dot { position: absolute; top: -3px; right: -3px; width: 8px; height: 8px; border-radius: 50%; background: var(--red); border: 2px solid var(--bg); }
+
+  /* ACCENT LINE */
+  .accent-line { height: 3px; border-radius: 2px; background: linear-gradient(90deg, var(--accent), transparent); margin-bottom: 16px; }
+
+  /* SCORE BAR */
+  .score-bar { display: flex; align-items: center; gap: 8px; }
+  .score-segments { display: flex; gap: 3px; }
+  .seg { width: 16px; height: 6px; border-radius: 2px; background: var(--border); }
+  .seg.filled { background: var(--accent); }
+
+  .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+
+</style>
+</head>
+<body>
+
+<nav class="preview-nav">
+  <span>⚡ LEADDRIVE</span>
+  <button class="active" onclick="show(0)">Screen 1 — Lead Listing</button>
+  <button onclick="show(1)">Screen 2 — Lead Details</button>
+  <button onclick="show(2)">Screen 3 — Lead Management</button>
+  <button onclick="show(3)">Screen 4 — Dashboard</button>
+</nav>
+
+<div class="screens-wrap">
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SCREEN 1: LEAD LISTING -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="screen active" id="s0">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="logo-area">
+      <div class="logo">Lead<span>Drive</span></div>
+      <div class="logo-sub">HSR Motors CRM</div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Main</div>
+      <div class="nav-item active"><span class="nav-icon">📋</span> Lead Listing <span class="nav-badge">142</span></div>
+      <div class="nav-item"><span class="nav-icon">👤</span> Lead Details</div>
+      <div class="nav-item"><span class="nav-icon">⚙️</span> Lead Management</div>
+      <div class="nav-item"><span class="nav-icon">📊</span> Dashboard</div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Tools</div>
+      <div class="nav-item"><span class="nav-icon">📞</span> Call Log</div>
+      <div class="nav-item"><span class="nav-icon">🔔</span> Reminders</div>
+      <div class="nav-item"><span class="nav-icon">🤖</span> Automation</div>
+    </div>
+    <div class="sidebar-footer">
+      <div class="user-pill">
+        <div class="avatar">RK</div>
+        <div class="user-info">
+          <div class="user-name">Rahul Kumar</div>
+          <div class="user-role">Sales Executive</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-title">All Leads</div>
+      <div class="topbar-right">
+        <div class="search-box">
+          <span style="color:var(--muted);font-size:14px;">🔍</span>
+          <input placeholder="Search by name, phone, source..." />
+        </div>
+        <div class="icon-btn notif"><span>🔔</span><div class="notif-dot"></div></div>
+        <div class="icon-btn"><span>⬇️</span></div>
+        <button class="btn btn-primary">＋ Add Lead</button>
+      </div>
+    </div>
+    <div class="page">
+      <!-- STATS ROW -->
+      <div class="stats-grid">
+        <div class="card">
+          <div class="card-label">Total Leads</div>
+          <div class="card-value">142</div>
+          <div class="card-change up">↑ 12 this week</div>
+        </div>
+        <div class="card">
+          <div class="card-label">New Today</div>
+          <div class="card-value" style="color:var(--accent2)">18</div>
+          <div class="card-change up">↑ 4 from yesterday</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Qualified</div>
+          <div class="card-value" style="color:var(--green)">34</div>
+          <div class="card-change">23.9% conversion</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Follow-up Due</div>
+          <div class="card-value" style="color:var(--yellow)">9</div>
+          <div class="card-change down">⚠ 3 overdue</div>
+        </div>
+      </div>
+
+      <!-- FILTERS -->
+      <div class="filter-bar">
+        <div class="filter-chip active">All Sources</div>
+        <div class="filter-chip">📘 Facebook</div>
+        <div class="filter-chip">🐦 Twitter</div>
+        <div class="filter-chip">🔍 Google</div>
+        <div class="filter-chip">🌐 Website</div>
+        <div class="filter-chip">📍 Offline</div>
+        <div style="margin-left:auto; display:flex; gap:8px;">
+          <div class="filter-chip"><select><option>All Status</option><option>New</option><option>Contacted</option><option>Qualified</option></select></div>
+          <div class="filter-chip"><select><option>Last 30 Days</option><option>Today</option><option>This Week</option></select></div>
+          <div class="filter-chip">⇅ Sort</div>
+        </div>
+      </div>
+
+      <!-- TABLE -->
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th style="width:36px;"><div class="checkbox"></div></th>
+              <th>Lead</th>
+              <th>Source</th>
+              <th>Status</th>
+              <th>Lead Score</th>
+              <th>Assigned To</th>
+              <th>Added On</th>
+              <th>Last Activity</th>
+              <th style="width:40px;"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><div class="checkbox"></div></td>
+              <td><div class="lead-name">Priya Sharma</div><div class="lead-phone">+91 98765 43210</div></td>
+              <td><div class="source"><span class="source-icon">📘</span>Facebook</div></td>
+              <td><span class="badge badge-new"><span class="badge-dot"></span>New</span></td>
+              <td><div class="score-bar"><div class="score-segments"><div class="seg filled"></div><div class="seg filled"></div><div class="seg filled"></div><div class="seg filled"></div><div class="seg"></div></div><span style="font-size:11px;color:var(--muted)">8/10</span></div></td>
+              <td><div style="display:flex;align-items:center;gap:6px;"><div class="kc-avatar">RK</div><span style="font-size:12.5px;">Rahul K.</span></div></td>
+              <td style="font-size:12px;color:var(--muted);">Mar 12, 2026</td>
+              <td style="font-size:12px;color:var(--muted);">Just now</td>
+              <td><div class="action-dots">···</div></td>
+            </tr>
+            <tr>
+              <td><div class="checkbox"></div></td>
+              <td><div class="lead-name">Arun Mehta</div><div class="lead-phone">+91 87654 32109</div></td>
+              <td><div class="source"><span class="source-icon">🔍</span>Google</div></td>
+              <td><span class="badge badge-contacted"><span class="badge-dot"></span>Contacted</span></td>
+              <td><div class="score-bar"><div class="score-segments"><div class="seg filled"></div><div class="seg filled"></div><div class="seg filled"></div><div class="seg"></div><div class="seg"></div></div><span style="font-size:11px;color:var(--muted)">6/10</span></div></td>
+              <td><div style="display:flex;align-items:center;gap:6px;"><div class="kc-avatar" style="background:linear-gradient(135deg,#f59e0b,#ef4444)">SM</div><span style="font-size:12.5px;">Sneha M.</span></div></td>
+              <td style="font-size:12px;color:var(--muted);">Mar 11, 2026</td>
+              <td style="font-size:12px;color:var(--muted);">2 hrs ago</td>
+              <td><div class="action-dots">···</div></td>
+            </tr>
+            <tr>
+              <td><div class="checkbox"></div></td>
+              <td><div class="lead-name">Kiran Patel</div><div class="lead-phone">+91 76543 21098</div></td>
+              <td><div class="source"><span class="source-icon">🌐</span>Website</div></td>
+              <td><span class="badge badge-qualified"><span class="badge-dot"></span>Qualified</span></td>
+              <td><div class="score-bar"><div class="score-segments"><div class="seg filled"></div><div class="seg filled"></div><div class="seg filled"></div><div class="seg filled"></div><div class="seg filled"></div></div><span style="font-size:11px;color:var(--muted)">10/10</span></div></td>
+              <td><div style="display:flex;align-items:center;gap:6px;"><div class="kc-avatar" style="background:linear-gradient(135deg,#22c55e,#3d8ef8)">VR</div><span style="font-size:12.5px;">Vikram R.</span></div></td>
+              <td style="font-size:12px;color:var(--muted);">Mar 10, 2026</td>
+              <td style="font-size:12px;color:var(--muted);">Yesterday</td>
+              <td><div class="action-dots">···</div></td>
+            </tr>
+            <tr>
+              <td><div class="checkbox"></div></td>
+              <td><div class="lead-name">Divya Nair</div><div class="lead-phone">+91 65432 10987</div></td>
+              <td><div class="source"><span class="source-icon">📍</span>Offline Event</div></td>
+              <td><span class="badge badge-follow-up"><span class="badge-dot"></span>Follow-up</span></td>
+              <td><div class="score-bar"><div class="score-segments"><div class="seg filled"></div><div class="seg filled"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div></div><span style="font-size:11px;color:var(--muted)">4/10</span></div></td>
+              <td><div style="display:flex;align-items:center;gap:6px;"><div class="kc-avatar">RK</div><span style="font-size:12.5px;">Rahul K.</span></div></td>
+              <td style="font-size:12px;color:var(--muted);">Mar 9, 2026</td>
+              <td style="font-size:12px;color:var(--muted);">3 days ago</td>
+              <td><div class="action-dots">···</div></td>
+            </tr>
+            <tr>
+              <td><div class="checkbox"></div></td>
+              <td><div class="lead-name">Suresh Rao</div><div class="lead-phone">+91 54321 09876</div></td>
+              <td><div class="source"><span class="source-icon">🐦</span>Twitter</div></td>
+              <td><span class="badge badge-not-interested"><span class="badge-dot"></span>Not Interested</span></td>
+              <td><div class="score-bar"><div class="score-segments"><div class="seg filled"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div></div><span style="font-size:11px;color:var(--muted)">2/10</span></div></td>
+              <td><div style="display:flex;align-items:center;gap:6px;"><div class="kc-avatar" style="background:linear-gradient(135deg,#f59e0b,#ef4444)">SM</div><span style="font-size:12.5px;">Sneha M.</span></div></td>
+              <td style="font-size:12px;color:var(--muted);">Mar 8, 2026</td>
+              <td style="font-size:12px;color:var(--muted);">4 days ago</td>
+              <td><div class="action-dots">···</div></td>
+            </tr>
+            <tr>
+              <td><div class="checkbox"></div></td>
+              <td><div class="lead-name">Anjali Singh</div><div class="lead-phone">+91 93847 56120</div></td>
+              <td><div class="source"><span class="source-icon">🔍</span>Google</div></td>
+              <td><span class="badge badge-new"><span class="badge-dot"></span>New</span></td>
+              <td><div class="score-bar"><div class="score-segments"><div class="seg filled"></div><div class="seg filled"></div><div class="seg filled"></div><div class="seg"></div><div class="seg"></div></div><span style="font-size:11px;color:var(--muted)">6/10</span></div></td>
+              <td><div style="display:flex;align-items:center;gap:6px;"><div class="kc-avatar" style="background:linear-gradient(135deg,#22c55e,#3d8ef8)">VR</div><span style="font-size:12.5px;">Vikram R.</span></div></td>
+              <td style="font-size:12px;color:var(--muted);">Mar 12, 2026</td>
+              <td style="font-size:12px;color:var(--muted);">1 hr ago</td>
+              <td><div class="action-dots">···</div></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <!-- PAGINATION -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:16px;">
+        <div style="font-size:12px;color:var(--muted)">Showing 1–6 of 142 leads</div>
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-secondary btn-sm">← Prev</button>
+          <button class="btn btn-primary btn-sm">1</button>
+          <button class="btn btn-secondary btn-sm">2</button>
+          <button class="btn btn-secondary btn-sm">3</button>
+          <button class="btn btn-secondary btn-sm">Next →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SCREEN 2: LEAD DETAILS -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="screen" id="s1">
+  <div class="sidebar">
+    <div class="logo-area"><div class="logo">Lead<span>Drive</span></div><div class="logo-sub">HSR Motors CRM</div></div>
+    <div class="nav-section">
+      <div class="nav-label">Main</div>
+      <div class="nav-item"><span class="nav-icon">📋</span> Lead Listing</div>
+      <div class="nav-item active"><span class="nav-icon">👤</span> Lead Details</div>
+      <div class="nav-item"><span class="nav-icon">⚙️</span> Lead Management</div>
+      <div class="nav-item"><span class="nav-icon">📊</span> Dashboard</div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Tools</div>
+      <div class="nav-item"><span class="nav-icon">📞</span> Call Log</div>
+      <div class="nav-item"><span class="nav-icon">🔔</span> Reminders</div>
+      <div class="nav-item"><span class="nav-icon">🤖</span> Automation</div>
+    </div>
+    <div class="sidebar-footer">
+      <div class="user-pill"><div class="avatar">RK</div><div class="user-info"><div class="user-name">Rahul Kumar</div><div class="user-role">Sales Executive</div></div></div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="breadcrumb"><a style="color:var(--muted);text-decoration:none;">All Leads</a><span class="sep">›</span><span>Priya Sharma</span></div>
+      <div class="topbar-right">
+        <button class="btn btn-secondary">← Back to List</button>
+        <button class="btn btn-primary">📞 Log Call</button>
+      </div>
+    </div>
+    <div class="page">
+      <!-- LEAD HERO -->
+      <div class="card" style="margin-bottom:20px;display:flex;align-items:center;gap:20px;padding:20px 24px;">
+        <div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:#000;flex-shrink:0;">PS</div>
+        <div style="flex:1;">
+          <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:700;">Priya Sharma</div>
+          <div style="font-size:13px;color:var(--muted);margin-top:3px;">+91 98765 43210 · priya.sharma@email.com</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
+          <span class="badge badge-new"><span class="badge-dot"></span>New</span>
+          <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);"><span>Source:</span><span class="source"><span class="source-icon">📘</span>Facebook Ad</span></div>
+        </div>
+        <div style="text-align:center;padding-left:24px;border-left:1px solid var(--border);">
+          <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Lead Score</div>
+          <div style="font-family:'Syne',sans-serif;font-size:32px;font-weight:800;color:var(--accent);">8</div>
+          <div style="font-size:10px;color:var(--muted);">/ 10</div>
+        </div>
+      </div>
+
+      <div class="detail-grid">
+        <!-- LEFT COL -->
+        <div style="display:flex;flex-direction:column;gap:16px;">
+          <!-- CONTACT INFO -->
+          <div class="card">
+            <div class="section-header"><div class="section-title">Contact Information</div><button class="btn btn-secondary btn-sm">Edit</button></div>
+            <div class="info-row"><div class="info-label">Full Name</div><div class="info-value">Priya Sharma</div></div>
+            <div class="info-row"><div class="info-label">Phone</div><div class="info-value">+91 98765 43210 <span style="font-size:11px;background:rgba(34,197,94,0.12);color:var(--green);padding:1px 6px;border-radius:4px;margin-left:4px;">Verified</span></div></div>
+            <div class="info-row"><div class="info-label">Email</div><div class="info-value">priya.sharma@email.com</div></div>
+            <div class="info-row"><div class="info-label">City</div><div class="info-value">Bengaluru, KA</div></div>
+            <div class="info-row"><div class="info-label">Car Interest</div><div class="info-value">Maruti Swift / Honda City</div></div>
+            <div class="info-row"><div class="info-label">Budget</div><div class="info-value">₹8L – ₹12L</div></div>
+            <div class="info-row"><div class="info-label">Lead Source</div><div class="info-value"><span class="source"><span class="source-icon">📘</span> Facebook – "Summer Sale" Campaign</span></div></div>
+          </div>
+
+          <!-- UPDATE STATUS -->
+          <div class="card">
+            <div class="section-title" style="margin-bottom:14px;">Update Status</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
+              <button class="btn btn-secondary btn-sm" style="border-color:var(--accent2);color:var(--accent2);">New</button>
+              <button class="btn btn-secondary btn-sm" style="border-color:var(--purple);color:var(--purple);">Contacted</button>
+              <button class="btn btn-secondary btn-sm" style="border-color:var(--green);color:var(--green);">Qualified</button>
+              <button class="btn btn-secondary btn-sm" style="border-color:var(--yellow);color:var(--yellow);">Follow-up</button>
+              <button class="btn btn-secondary btn-sm" style="border-color:var(--red);color:var(--red);">Not Interested</button>
+            </div>
+            <div class="form-row">
+              <label class="form-label">Call Notes</label>
+              <textarea class="notes-area" placeholder="Add notes from your call with Priya...">Customer is interested in a compact sedan. Has a budget of ₹10–12L. Preferred white or silver color. Will decide after comparing with Honda City.</textarea>
+            </div>
+            <div style="display:flex;gap:8px;justify-content:flex-end;">
+              <button class="btn btn-secondary btn-sm">Set Reminder</button>
+              <button class="btn btn-primary btn-sm">Save Changes</button>
+            </div>
+          </div>
+
+          <!-- CALL LOG -->
+          <div class="card">
+            <div class="section-header"><div class="section-title">Call Log</div><button class="btn btn-primary btn-sm">＋ Log Call</button></div>
+            <table style="width:100%;border-collapse:collapse;">
+              <thead><tr><th style="text-align:left;font-size:11px;color:var(--muted);padding:6px 0;font-weight:600;text-transform:uppercase;letter-spacing:.8px;border-bottom:1px solid var(--border);">Date</th><th style="text-align:left;font-size:11px;color:var(--muted);padding:6px 0;font-weight:600;text-transform:uppercase;letter-spacing:.8px;border-bottom:1px solid var(--border);">Duration</th><th style="text-align:left;font-size:11px;color:var(--muted);padding:6px 0;font-weight:600;text-transform:uppercase;letter-spacing:.8px;border-bottom:1px solid var(--border);">Outcome</th><th style="text-align:left;font-size:11px;color:var(--muted);padding:6px 0;font-weight:600;text-transform:uppercase;letter-spacing:.8px;border-bottom:1px solid var(--border);">By</th></tr></thead>
+              <tbody>
+                <tr><td style="font-size:12.5px;padding:10px 0;border-bottom:1px solid var(--border);color:var(--muted);">Mar 12, 10:30 AM</td><td style="font-size:12.5px;padding:10px 0;border-bottom:1px solid var(--border);">4m 22s</td><td style="font-size:12.5px;padding:10px 0;border-bottom:1px solid var(--border);"><span class="badge badge-qualified" style="font-size:11px;">Interested</span></td><td style="font-size:12.5px;padding:10px 0;border-bottom:1px solid var(--border);color:var(--muted);">Rahul K.</td></tr>
+                <tr><td style="font-size:12.5px;padding:10px 0;color:var(--muted);">Mar 11, 3:00 PM</td><td style="font-size:12.5px;padding:10px 0;">1m 08s</td><td style="font-size:12.5px;padding:10px 0;"><span class="badge badge-follow-up" style="font-size:11px;">No Answer</span></td><td style="font-size:12.5px;padding:10px 0;color:var(--muted);">Rahul K.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- RIGHT COL -->
+        <div style="display:flex;flex-direction:column;gap:16px;">
+          <!-- ASSIGNMENT -->
+          <div class="card">
+            <div class="section-title" style="margin-bottom:14px;">Assignment</div>
+            <div class="form-row">
+              <label class="form-label">Assigned To</label>
+              <select class="form-input form-select">
+                <option selected>Rahul Kumar</option>
+                <option>Sneha Mehta</option>
+                <option>Vikram Rao</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <label class="form-label">Follow-up Date</label>
+              <input class="form-input" type="text" value="Mar 14, 2026 – 11:00 AM" />
+            </div>
+            <div class="auto-tag" style="margin-bottom:12px;">⚡ Auto-assigned based on Facebook leads rule</div>
+            <button class="btn btn-primary" style="width:100%;">Update Assignment</button>
+          </div>
+
+          <!-- ACTIVITY TIMELINE -->
+          <div class="card" style="flex:1;">
+            <div class="section-title" style="margin-bottom:16px;">Activity Timeline</div>
+            <div class="timeline-item">
+              <div class="tl-dot-wrap"><div class="tl-dot" style="background:var(--green)"></div><div class="tl-line"></div></div>
+              <div class="tl-content">
+                <div class="tl-title">Call Logged</div>
+                <div class="tl-time">Today, 10:30 AM · Rahul K.</div>
+                <div class="tl-body">Spoke 4m 22s. Customer interested in Swift. Follow-up booked.</div>
+              </div>
+            </div>
+            <div class="timeline-item">
+              <div class="tl-dot-wrap"><div class="tl-dot" style="background:var(--accent2)"></div><div class="tl-line"></div></div>
+              <div class="tl-content">
+                <div class="tl-title">Lead Assigned</div>
+                <div class="tl-time">Today, 9:02 AM · System</div>
+                <div class="tl-body">Auto-assigned to Rahul Kumar via Facebook rule.</div>
+              </div>
+            </div>
+            <div class="timeline-item">
+              <div class="tl-dot-wrap"><div class="tl-dot" style="background:var(--accent)"></div><div class="tl-line"></div></div>
+              <div class="tl-content">
+                <div class="tl-title">Lead Created</div>
+                <div class="tl-time">Today, 8:47 AM · System</div>
+                <div class="tl-body">Lead received via Facebook Ad – "Summer Sale" campaign.</div>
+              </div>
+            </div>
+            <div class="timeline-item">
+              <div class="tl-dot-wrap"><div class="tl-dot" style="background:var(--purple)"></div></div>
+              <div class="tl-content">
+                <div class="tl-title">Duplicate Check</div>
+                <div class="tl-time">Today, 8:47 AM · System</div>
+                <div class="tl-body">No duplicate found. Lead is unique.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- QUICK ACTIONS -->
+          <div class="card">
+            <div class="section-title" style="margin-bottom:12px;">Quick Actions</div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <button class="btn btn-secondary" style="justify-content:flex-start;gap:10px;">📨 Send WhatsApp Message</button>
+              <button class="btn btn-secondary" style="justify-content:flex-start;gap:10px;">📧 Send Email</button>
+              <button class="btn btn-secondary" style="justify-content:flex-start;gap:10px;">🗓 Schedule Test Drive</button>
+              <button class="btn btn-secondary" style="justify-content:flex-start;gap:10px;color:var(--red);border-color:rgba(239,68,68,0.3);">🗑 Delete Lead</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SCREEN 3: LEAD MANAGEMENT -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="screen" id="s2">
+  <div class="sidebar">
+    <div class="logo-area"><div class="logo">Lead<span>Drive</span></div><div class="logo-sub">HSR Motors CRM</div></div>
+    <div class="nav-section">
+      <div class="nav-label">Main</div>
+      <div class="nav-item"><span class="nav-icon">📋</span> Lead Listing</div>
+      <div class="nav-item"><span class="nav-icon">👤</span> Lead Details</div>
+      <div class="nav-item active"><span class="nav-icon">⚙️</span> Lead Management</div>
+      <div class="nav-item"><span class="nav-icon">📊</span> Dashboard</div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Tools</div>
+      <div class="nav-item"><span class="nav-icon">📞</span> Call Log</div>
+      <div class="nav-item"><span class="nav-icon">🔔</span> Reminders</div>
+      <div class="nav-item"><span class="nav-icon">🤖</span> Automation</div>
+    </div>
+    <div class="sidebar-footer">
+      <div class="user-pill"><div class="avatar" style="background:linear-gradient(135deg,#a855f7,#3d8ef8)">BM</div><div class="user-info"><div class="user-name">Bhavna Menon</div><div class="user-role">Business Manager</div></div></div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-title">Lead Management</div>
+      <div class="topbar-right">
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-primary btn-sm" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);">📋 Table View</button>
+          <button class="btn btn-primary btn-sm">📌 Kanban View</button>
+        </div>
+        <button class="btn btn-secondary">⚡ Bulk Actions</button>
+        <button class="btn btn-primary">＋ Add Lead</button>
+      </div>
+    </div>
+    <div class="page">
+
+      <!-- TOP ROW: ASSIGNMENT + AUTOMATION -->
+      <div class="two-col" style="margin-bottom:20px;">
+        <!-- REP ASSIGNMENT -->
+        <div class="card">
+          <div class="section-header"><div class="section-title">Sales Rep Workload</div><button class="btn btn-secondary btn-sm">Reassign</button></div>
+          <div class="assign-row">
+            <div class="rep-avatar" style="background:linear-gradient(135deg,var(--accent2),var(--purple))">RK</div>
+            <div class="rep-info"><div class="rep-name">Rahul Kumar</div><div class="rep-count">52 leads · 12 follow-ups due</div></div>
+            <div class="progress-bar-wrap"><div class="progress-bar"><div class="progress-fill" style="width:78%"></div></div><div style="font-size:10px;color:var(--muted);margin-top:3px;text-align:right;">78% capacity</div></div>
+          </div>
+          <div class="assign-row">
+            <div class="rep-avatar" style="background:linear-gradient(135deg,#f59e0b,#ef4444)">SM</div>
+            <div class="rep-info"><div class="rep-name">Sneha Mehta</div><div class="rep-count">41 leads · 5 follow-ups due</div></div>
+            <div class="progress-bar-wrap"><div class="progress-bar"><div class="progress-fill" style="width:55%"></div></div><div style="font-size:10px;color:var(--muted);margin-top:3px;text-align:right;">55% capacity</div></div>
+          </div>
+          <div class="assign-row">
+            <div class="rep-avatar" style="background:linear-gradient(135deg,#22c55e,#3d8ef8)">VR</div>
+            <div class="rep-info"><div class="rep-name">Vikram Rao</div><div class="rep-count">49 leads · 8 follow-ups due</div></div>
+            <div class="progress-bar-wrap"><div class="progress-bar"><div class="progress-fill" style="width:65%"></div></div><div style="font-size:10px;color:var(--muted);margin-top:3px;text-align:right;">65% capacity</div></div>
+          </div>
+        </div>
+
+        <!-- AUTOMATION RULES -->
+        <div class="card">
+          <div class="section-header"><div class="section-title">⚡ Automation Rules</div><button class="btn btn-primary btn-sm">＋ Add Rule</button></div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;display:flex;align-items:center;gap:10px;">
+              <div style="flex:1;"><div style="font-size:13px;font-weight:600;color:var(--text);">Facebook Leads → Rahul Kumar</div><div style="font-size:11.5px;color:var(--muted);margin-top:2px;">Auto-assign all Facebook leads</div></div>
+              <div style="width:34px;height:18px;border-radius:9px;background:var(--green);position:relative;cursor:pointer;"><div style="width:14px;height:14px;border-radius:50%;background:#fff;position:absolute;top:2px;right:2px;"></div></div>
+            </div>
+            <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;display:flex;align-items:center;gap:10px;">
+              <div style="flex:1;"><div style="font-size:13px;font-weight:600;color:var(--text);">No Contact for 3 Days → Alert</div><div style="font-size:11.5px;color:var(--muted);margin-top:2px;">Send reminder to rep + manager</div></div>
+              <div style="width:34px;height:18px;border-radius:9px;background:var(--green);position:relative;cursor:pointer;"><div style="width:14px;height:14px;border-radius:50%;background:#fff;position:absolute;top:2px;right:2px;"></div></div>
+            </div>
+            <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;display:flex;align-items:center;gap:10px;">
+              <div style="flex:1;"><div style="font-size:13px;font-weight:600;color:var(--text);">Duplicate Phone → Flag Lead</div><div style="font-size:11.5px;color:var(--muted);margin-top:2px;">Auto-detect and merge duplicates</div></div>
+              <div style="width:34px;height:18px;border-radius:9px;background:var(--green);position:relative;cursor:pointer;"><div style="width:14px;height:14px;border-radius:50%;background:#fff;position:absolute;top:2px;right:2px;"></div></div>
+            </div>
+            <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;display:flex;align-items:center;gap:10px;">
+              <div style="flex:1;"><div style="font-size:13px;font-weight:600;color:var(--text);">Qualified Lead → WhatsApp</div><div style="font-size:11.5px;color:var(--muted);margin-top:2px;">Send congrats + test drive link</div></div>
+              <div style="width:34px;height:18px;border-radius:9px;background:var(--border);position:relative;cursor:pointer;"><div style="width:14px;height:14px;border-radius:50%;background:var(--muted);position:absolute;top:2px;left:2px;"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- KANBAN PIPELINE -->
+      <div class="section-header"><div class="section-title">Pipeline – Kanban View</div><div style="font-size:12px;color:var(--muted);">Drag cards to update status</div></div>
+      <div class="kanban">
+        <!-- NEW -->
+        <div class="kanban-col">
+          <div class="kanban-head"><div class="kanban-head-label" style="color:var(--accent2);">● New</div><div class="kanban-count">48</div></div>
+          <div class="kanban-body">
+            <div class="kanban-card"><div class="kc-name">Priya Sharma</div><div class="kc-meta"><span>📘 Facebook</span><span>·</span><span>Today</span></div><div class="kc-assignee"><div class="kc-avatar">RK</div><span style="font-size:11px;color:var(--muted);">Rahul K.</span></div></div>
+            <div class="kanban-card"><div class="kc-name">Anjali Singh</div><div class="kc-meta"><span>🔍 Google</span><span>·</span><span>Today</span></div><div class="kc-assignee"><div class="kc-avatar" style="background:linear-gradient(135deg,#22c55e,#3d8ef8)">VR</div><span style="font-size:11px;color:var(--muted);">Vikram R.</span></div></div>
+            <div class="kanban-card"><div class="kc-name">Rohan Joshi</div><div class="kc-meta"><span>🌐 Website</span><span>·</span><span>Yesterday</span></div><div class="kc-assignee"><div class="kc-avatar" style="background:linear-gradient(135deg,#f59e0b,#ef4444)">SM</div><span style="font-size:11px;color:var(--muted);">Sneha M.</span></div></div>
+            <div style="text-align:center;padding:8px;font-size:12px;color:var(--muted);cursor:pointer;">+ 45 more</div>
+          </div>
+        </div>
+        <!-- CONTACTED -->
+        <div class="kanban-col">
+          <div class="kanban-head"><div class="kanban-head-label" style="color:var(--purple);">● Contacted</div><div class="kanban-count">36</div></div>
+          <div class="kanban-body">
+            <div class="kanban-card"><div class="kc-name">Arun Mehta</div><div class="kc-meta"><span>🔍 Google</span><span>·</span><span>Mar 11</span></div><div class="kc-assignee"><div class="kc-avatar" style="background:linear-gradient(135deg,#f59e0b,#ef4444)">SM</div><span style="font-size:11px;color:var(--muted);">Sneha M.</span></div></div>
+            <div class="kanban-card"><div class="kc-name">Meena Iyer</div><div class="kc-meta"><span>📍 Offline</span><span>·</span><span>Mar 10</span></div><div class="kc-assignee"><div class="kc-avatar">RK</div><span style="font-size:11px;color:var(--muted);">Rahul K.</span></div></div>
+            <div style="text-align:center;padding:8px;font-size:12px;color:var(--muted);cursor:pointer;">+ 34 more</div>
+          </div>
+        </div>
+        <!-- FOLLOW-UP -->
+        <div class="kanban-col">
+          <div class="kanban-head"><div class="kanban-head-label" style="color:var(--yellow);">● Follow-Up</div><div class="kanban-count">24</div></div>
+          <div class="kanban-body">
+            <div class="kanban-card" style="border-color:var(--yellow)"><div class="kc-name">Divya Nair</div><div class="kc-meta"><span>📍 Offline</span><span>·</span><span style="color:var(--red)">⚠ Overdue</span></div><div class="kc-assignee"><div class="kc-avatar">RK</div><span style="font-size:11px;color:var(--muted);">Rahul K.</span></div></div>
+            <div style="text-align:center;padding:8px;font-size:12px;color:var(--muted);cursor:pointer;">+ 23 more</div>
+          </div>
+        </div>
+        <!-- QUALIFIED -->
+        <div class="kanban-col">
+          <div class="kanban-head"><div class="kanban-head-label" style="color:var(--green);">● Qualified</div><div class="kanban-count">34</div></div>
+          <div class="kanban-body">
+            <div class="kanban-card"><div class="kc-name">Kiran Patel</div><div class="kc-meta"><span>🌐 Website</span><span>·</span><span>Mar 10</span></div><div class="kc-assignee"><div class="kc-avatar" style="background:linear-gradient(135deg,#22c55e,#3d8ef8)">VR</div><span style="font-size:11px;color:var(--muted);">Vikram R.</span></div></div>
+            <div style="text-align:center;padding:8px;font-size:12px;color:var(--muted);cursor:pointer;">+ 33 more</div>
+          </div>
+        </div>
+        <!-- NOT INTERESTED -->
+        <div class="kanban-col">
+          <div class="kanban-head"><div class="kanban-head-label" style="color:var(--red);">● Not Interested</div><div class="kanban-count">0</div></div>
+          <div class="kanban-body">
+            <div class="kanban-card"><div class="kc-name">Suresh Rao</div><div class="kc-meta"><span>🐦 Twitter</span><span>·</span><span>Mar 8</span></div><div class="kc-assignee"><div class="kc-avatar" style="background:linear-gradient(135deg,#f59e0b,#ef4444)">SM</div><span style="font-size:11px;color:var(--muted);">Sneha M.</span></div></div>
+            <div style="text-align:center;padding:8px;font-size:12px;color:var(--muted);cursor:pointer;">+ more</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SCREEN 4: DASHBOARD -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="screen" id="s3">
+  <div class="sidebar">
+    <div class="logo-area"><div class="logo">Lead<span>Drive</span></div><div class="logo-sub">HSR Motors CRM</div></div>
+    <div class="nav-section">
+      <div class="nav-label">Main</div>
+      <div class="nav-item"><span class="nav-icon">📋</span> Lead Listing</div>
+      <div class="nav-item"><span class="nav-icon">👤</span> Lead Details</div>
+      <div class="nav-item"><span class="nav-icon">⚙️</span> Lead Management</div>
+      <div class="nav-item active"><span class="nav-icon">📊</span> Dashboard</div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Tools</div>
+      <div class="nav-item"><span class="nav-icon">📞</span> Call Log</div>
+      <div class="nav-item"><span class="nav-icon">🔔</span> Reminders</div>
+      <div class="nav-item"><span class="nav-icon">🤖</span> Automation</div>
+    </div>
+    <div class="sidebar-footer">
+      <div class="user-pill"><div class="avatar" style="background:linear-gradient(135deg,#a855f7,#3d8ef8)">BM</div><div class="user-info"><div class="user-name">Bhavna Menon</div><div class="user-role">Business Manager</div></div></div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-title">Analytics Dashboard</div>
+      <div class="topbar-right">
+        <div class="filter-chip" style="cursor:pointer;"><select style="background:none;border:none;outline:none;color:var(--text);font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;"><option>Last 30 Days</option><option>This Week</option><option>This Month</option><option>Custom Range</option></select></div>
+        <button class="btn btn-secondary">⬇ Export</button>
+        <button class="btn btn-primary">🔄 Refresh</button>
+      </div>
+    </div>
+    <div class="page">
+      <!-- KPI CARDS -->
+      <div class="stats-grid" style="margin-bottom:20px;">
+        <div class="card" style="border-color:rgba(61,142,248,0.3);">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+            <div><div class="card-label">Total Leads</div><div class="card-value" style="color:var(--accent2)">142</div></div>
+            <div style="font-size:24px;opacity:.5">📥</div>
+          </div>
+          <div class="card-change up">↑ 18% vs last month</div>
+          <svg width="100%" height="32" style="margin-top:8px;"><polyline points="0,28 20,22 40,25 60,16 80,18 100,10 120,14 140,8" class="sparkline"/></svg>
+        </div>
+        <div class="card" style="border-color:rgba(34,197,94,0.3);">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+            <div><div class="card-label">Qualified</div><div class="card-value" style="color:var(--green)">34</div></div>
+            <div style="font-size:24px;opacity:.5">✅</div>
+          </div>
+          <div class="card-change up">23.9% conversion rate</div>
+          <svg width="100%" height="32" style="margin-top:8px;"><polyline points="0,28 20,24 40,20 60,22 80,16 100,12 120,10 140,8" style="stroke:var(--green)" class="sparkline"/></svg>
+        </div>
+        <div class="card" style="border-color:rgba(245,158,11,0.3);">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+            <div><div class="card-label">Avg Response Time</div><div class="card-value" style="color:var(--yellow);font-size:22px;">1h 24m</div></div>
+            <div style="font-size:24px;opacity:.5">⏱</div>
+          </div>
+          <div class="card-change down">↓ 8 min slower this week</div>
+          <svg width="100%" height="32" style="margin-top:8px;"><polyline points="0,10 20,14 40,12 60,18 80,16 100,22 120,20 140,26" style="stroke:var(--yellow)" class="sparkline"/></svg>
+        </div>
+        <div class="card" style="border-color:rgba(245,166,35,0.3);">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+            <div><div class="card-label">Revenue Potential</div><div class="card-value" style="color:var(--accent);font-size:22px;">₹3.4Cr</div></div>
+            <div style="font-size:24px;opacity:.5">💰</div>
+          </div>
+          <div class="card-change up">↑ 31% from qualified leads</div>
+          <svg width="100%" height="32" style="margin-top:8px;"><polyline points="0,28 20,24 40,20 60,16 80,12 100,10 120,8 140,4" style="stroke:var(--accent)" class="sparkline"/></svg>
+        </div>
+      </div>
+
+      <!-- CHARTS ROW 1 -->
+      <div class="two-col" style="margin-bottom:20px;">
+        <!-- LEADS BY SOURCE -->
+        <div class="card">
+          <div class="section-header"><div class="section-title">Leads by Source</div><div style="font-size:12px;color:var(--muted)">Last 30 days</div></div>
+          <div class="donut-wrap">
+            <svg width="120" height="120" class="donut-svg" viewBox="0 0 120 120">
+              <circle cx="60" cy="60" r="50" fill="none" stroke="var(--border)" stroke-width="18"/>
+              <circle cx="60" cy="60" r="50" fill="none" stroke="var(--accent2)" stroke-width="18" stroke-dasharray="110 204" stroke-dashoffset="0" transform="rotate(-90 60 60)"/>
+              <circle cx="60" cy="60" r="50" fill="none" stroke="var(--accent)" stroke-width="18" stroke-dasharray="65 249" stroke-dashoffset="-110" transform="rotate(-90 60 60)"/>
+              <circle cx="60" cy="60" r="50" fill="none" stroke="var(--green)" stroke-width="18" stroke-dasharray="40 274" stroke-dashoffset="-175" transform="rotate(-90 60 60)"/>
+              <circle cx="60" cy="60" r="50" fill="none" stroke="var(--purple)" stroke-width="18" stroke-dasharray="30 284" stroke-dashoffset="-215" transform="rotate(-90 60 60)"/>
+              <circle cx="60" cy="60" r="50" fill="none" stroke="var(--yellow)" stroke-width="18" stroke-dasharray="18 296" stroke-dashoffset="-245" transform="rotate(-90 60 60)"/>
+              <text x="60" y="56" text-anchor="middle" font-size="11" fill="var(--muted)" font-family="DM Sans">Total</text>
+              <text x="60" y="70" text-anchor="middle" font-size="18" fill="var(--text)" font-weight="700" font-family="Syne">142</text>
+            </svg>
+            <div class="legend">
+              <div class="legend-item"><div class="legend-dot" style="background:var(--accent2)"></div>Facebook <strong style="margin-left:auto;color:var(--text);padding-left:20px;">54 (38%)</strong></div>
+              <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div>Google <strong style="margin-left:auto;color:var(--text);padding-left:20px;">32 (23%)</strong></div>
+              <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>Website <strong style="margin-left:auto;color:var(--text);padding-left:20px;">24 (17%)</strong></div>
+              <div class="legend-item"><div class="legend-dot" style="background:var(--purple)"></div>Twitter <strong style="margin-left:auto;color:var(--text);padding-left:20px;">18 (13%)</strong></div>
+              <div class="legend-item"><div class="legend-dot" style="background:var(--yellow)"></div>Offline <strong style="margin-left:auto;color:var(--text);padding-left:20px;">14 (10%)</strong></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- DAILY LEADS TREND -->
+        <div class="card">
+          <div class="section-header"><div class="section-title">Daily Lead Volume</div><div style="font-size:12px;color:var(--muted)">This week</div></div>
+          <div class="chart-area">
+            <div class="bar-chart">
+              <div class="bar-wrap"><div class="bar-val">8</div><div class="bar" style="height:55px;"></div><div class="bar-label">Mon</div></div>
+              <div class="bar-wrap"><div class="bar-val">14</div><div class="bar accent" style="height:90px;"></div><div class="bar-label">Tue</div></div>
+              <div class="bar-wrap"><div class="bar-val">11</div><div class="bar" style="height:72px;"></div><div class="bar-label">Wed</div></div>
+              <div class="bar-wrap"><div class="bar-val">6</div><div class="bar" style="height:40px;"></div><div class="bar-label">Thu</div></div>
+              <div class="bar-wrap"><div class="bar-val">18</div><div class="bar accent" style="height:118px;"></div><div class="bar-label">Fri</div></div>
+              <div class="bar-wrap"><div class="bar-val">9</div><div class="bar" style="height:58px;"></div><div class="bar-label">Sat</div></div>
+              <div class="bar-wrap"><div class="bar-val">4</div><div class="bar" style="height:26px;"></div><div class="bar-label">Sun</div></div>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-top:12px;font-size:12px;color:var(--muted);">
+            <span>Peak: Friday (18 leads)</span>
+            <span>Avg: <strong style="color:var(--text)">10/day</strong></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ROW 2 -->
+      <div class="three-col">
+        <!-- CONVERSION FUNNEL -->
+        <div class="card">
+          <div class="section-title" style="margin-bottom:16px;">Conversion Funnel</div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <div style="background:var(--surface2);border-radius:6px;padding:10px 12px;">
+              <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px;"><span>New Leads</span><span style="color:var(--accent2);font-weight:600;">142</span></div>
+              <div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden;"><div style="width:100%;height:100%;background:var(--accent2);border-radius:3px;"></div></div>
+            </div>
+            <div style="background:var(--surface2);border-radius:6px;padding:10px 12px;">
+              <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px;"><span>Contacted</span><span style="color:var(--purple);font-weight:600;">94 (66%)</span></div>
+              <div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden;"><div style="width:66%;height:100%;background:var(--purple);border-radius:3px;"></div></div>
+            </div>
+            <div style="background:var(--surface2);border-radius:6px;padding:10px 12px;">
+              <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px;"><span>Interested</span><span style="color:var(--yellow);font-weight:600;">58 (41%)</span></div>
+              <div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden;"><div style="width:41%;height:100%;background:var(--yellow);border-radius:3px;"></div></div>
+            </div>
+            <div style="background:var(--surface2);border-radius:6px;padding:10px 12px;">
+              <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px;"><span>Qualified</span><span style="color:var(--green);font-weight:600;">34 (24%)</span></div>
+              <div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden;"><div style="width:24%;height:100%;background:var(--green);border-radius:3px;"></div></div>
+            </div>
+            <div style="background:var(--surface2);border-radius:6px;padding:10px 12px;">
+              <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px;"><span>Not Interested</span><span style="color:var(--red);font-weight:600;">18 (13%)</span></div>
+              <div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden;"><div style="width:13%;height:100%;background:var(--red);border-radius:3px;"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- REP PERFORMANCE -->
+        <div class="card">
+          <div class="section-title" style="margin-bottom:16px;">Rep Performance</div>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div style="background:var(--surface2);border-radius:8px;padding:12px;">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                <div class="rep-avatar" style="width:30px;height:30px;font-size:11px;background:linear-gradient(135deg,var(--accent2),var(--purple))">RK</div>
+                <div style="flex:1;"><div style="font-size:13px;font-weight:600;">Rahul Kumar</div></div>
+                <div style="font-size:13px;color:var(--green);font-weight:700;">28%</div>
+              </div>
+              <div style="display:flex;gap:10px;font-size:11px;color:var(--muted);"><span>52 leads</span><span>·</span><span>15 qualified</span><span>·</span><span>Avg 1h 12m</span></div>
+            </div>
+            <div style="background:var(--surface2);border-radius:8px;padding:12px;">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                <div class="rep-avatar" style="width:30px;height:30px;font-size:11px;background:linear-gradient(135deg,#f59e0b,#ef4444)">SM</div>
+                <div style="flex:1;"><div style="font-size:13px;font-weight:600;">Sneha Mehta</div></div>
+                <div style="font-size:13px;color:var(--yellow);font-weight:700;">22%</div>
+              </div>
+              <div style="display:flex;gap:10px;font-size:11px;color:var(--muted);"><span>41 leads</span><span>·</span><span>9 qualified</span><span>·</span><span>Avg 1h 40m</span></div>
+            </div>
+            <div style="background:var(--surface2);border-radius:8px;padding:12px;">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                <div class="rep-avatar" style="width:30px;height:30px;font-size:11px;background:linear-gradient(135deg,#22c55e,#3d8ef8)">VR</div>
+                <div style="flex:1;"><div style="font-size:13px;font-weight:600;">Vikram Rao</div></div>
+                <div style="font-size:13px;color:var(--green);font-weight:700;">20%</div>
+              </div>
+              <div style="display:flex;gap:10px;font-size:11px;color:var(--muted);"><span>49 leads</span><span>·</span><span>10 qualified</span><span>·</span><span>Avg 1h 20m</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TOP INSIGHTS -->
+        <div class="card">
+          <div class="section-title" style="margin-bottom:16px;">🔍 AI Insights</div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div style="background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);border-radius:8px;padding:12px;">
+              <div style="font-size:12.5px;font-weight:600;color:var(--green);margin-bottom:4px;">📈 Best Day to Call</div>
+              <div style="font-size:12px;color:var(--muted);">Friday leads have 34% higher pickup rate. Schedule calls between 10AM–12PM.</div>
+            </div>
+            <div style="background:rgba(61,142,248,0.08);border:1px solid rgba(61,142,248,0.2);border-radius:8px;padding:12px;">
+              <div style="font-size:12.5px;font-weight:600;color:var(--accent2);margin-bottom:4px;">💡 Top Source</div>
+              <div style="font-size:12px;color:var(--muted);">Facebook delivers 38% of leads but Google has a higher 29% qualification rate.</div>
+            </div>
+            <div style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:8px;padding:12px;">
+              <div style="font-size:12.5px;font-weight:600;color:var(--yellow);margin-bottom:4px;">⚠ At Risk</div>
+              <div style="font-size:12px;color:var(--muted);">9 leads haven't been contacted in 3+ days. Assign and follow-up urgently.</div>
+            </div>
+            <div style="background:rgba(168,85,247,0.08);border:1px solid rgba(168,85,247,0.2);border-radius:8px;padding:12px;">
+              <div style="font-size:12.5px;font-weight:600;color:var(--purple);margin-bottom:4px;">🏆 This Month's Best</div>
+              <div style="font-size:12px;color:var(--muted);">Rahul Kumar leads with 28% conversion — assign him high-score leads.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /screens-wrap -->
+
+<script>
+function show(idx) {
+  document.querySelectorAll('.screen').forEach((s,i) => s.classList.toggle('active', i===idx));
+  document.querySelectorAll('.preview-nav button').forEach((b,i) => b.classList.toggle('active', i===idx));
+}
+</script>
+</body>
+</html>
